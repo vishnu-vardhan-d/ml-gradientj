@@ -7,9 +7,6 @@ every correction is visible, so you can follow along and check the numbers yours
 
 ### [▶ Open the interactive explainer](https://vishnu-vardhan-d.github.io/ml-gradientj/)
 
-<!-- Add a screenshot or GIF of the explainer page here -- it is the single biggest
-     improvement you can make to this README. See "Adding the screenshot" below. -->
-![The interactive explainer](docs/screenshot.png)
 
 ---
 
@@ -119,7 +116,7 @@ Requires Java 17+ and Maven. The explainer page needs neither — just open
 ## An honest note
 
 The journey outcomes here are illustrative — composed to demonstrate the algorithm, not
-collected from real lorries. That does not change the maths, and the pipeline is exactly the
+collected from real data. That does not change the maths, and the pipeline is exactly the
 one you would run on real reports. But a model is only ever as truthful as the data beneath
 it, and this repository would rather say so than imply otherwise.
 
