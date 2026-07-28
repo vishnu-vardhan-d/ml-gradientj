@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Descent, by Hand — Linear Regression in Java</title>
+<style>
+  :root{--bg:#F1EEE7;--panel:#fff;--ink:#12100E;--muted:#6E6961;--teal:#147E86;--tealbg:#E1F0F1;--tealln:#7FB8BE;
+    --loss:#B23A24;--lossbg:#FBEAE7;--gain:#2F5B3C;--gainbg:#EAF3EC;--amber:#8A5A05;--amberbg:#FDF5E8;--line:#E4DFD5;--grid:#EDE8DF}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;font-size:14px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+  .shell{display:grid;grid-template-columns:196px 1fr;gap:28px;align-items:start}
+  nav.side{position:sticky;top:18px;align-self:start}
+  nav.side .grp{font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#A39B8E;margin:16px 0 7px}
+  nav.side a{display:block;font-size:12.5px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:7px;border-left:2px solid transparent;line-height:1.35}
+  nav.side a:hover{background:#fff;color:var(--ink)}
+  nav.side a.on{background:#fff;color:var(--teal);font-weight:700;border-left-color:var(--teal)}
+  .tree{background:#12100E;color:#EDE8DF;border-radius:12px;padding:16px 18px;white-space:pre;
+        font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px;line-height:1.85;overflow-x:auto}
+  .tree .you{color:#F0C674;font-weight:700}
+  .tree .mine{color:#7FB8BE;font-weight:700}
+  .tree .dim{color:#8E877C}
+  .defs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+  .def{background:#fff;border:1px solid var(--line);border-radius:11px;padding:14px 16px}
+  .def h4{margin:0 0 5px;font-size:13px;color:var(--teal)}
+  .def p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .def .eg{margin-top:8px;padding:7px 10px;background:#FBFAF7;border-radius:7px;font-size:11.5px;color:#4E4941}
+  .cmp{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  .cmp th{text-align:left;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--line)}
+  .cmp td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  .cmp tr.hl td{background:var(--tealbg)}
+  .cmp .algo{font-weight:700;white-space:nowrap}
+  .cmp .quote{color:#4E4941;font-style:italic}
+  @media(max-width:900px){.shell{grid-template-columns:1fr}nav.side{position:static;display:flex;gap:6px;flex-wrap:wrap}nav.side .grp{display:none}.defs{grid-template-columns:1fr}}
+  header{padding:28px 0 16px;border-bottom:1px solid var(--line);margin-bottom:20px}
+  h1{font-size:25px;margin:0 0 6px;letter-spacing:-.4px}.sub{font-size:13.5px;color:var(--muted);max-width:770px;margin:0}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.7px;color:var(--teal);background:var(--tealbg);padding:4px 10px;border-radius:20px;margin-bottom:11px}
+  section{margin:20px 0}
+  h2{font-size:16px;margin:0 0 4px;display:flex;align-items:center;gap:8px}h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--teal)}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 12px;max-width:840px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .card{border-radius:11px;padding:12px 14px}.card .k{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;opacity:.7;margin-bottom:4px}
+  .card .v{font-size:19px;font-weight:800}.card .n{font-size:11.5px;margin-top:3px;opacity:.8}
+  .c-plain{background:#fff;border:1px solid var(--line)}.c-good{background:var(--gainbg)}.c-good .v{color:var(--gain)}.c-bad{background:var(--lossbg)}.c-bad .v{color:var(--loss)}
+  .ex{display:grid;grid-template-columns:240px 1fr;gap:20px}
+  .controls label{display:block;font-size:11.5px;font-weight:600;margin:11px 0 5px}.controls .val{color:var(--teal);font-weight:700}
+  select{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:13px;color:var(--ink)}
+  input[type=range]{width:100%;accent-color:var(--teal)}
+  .gauge{display:flex;align-items:center;justify-content:space-between;margin:4px 0 2px;background:var(--tealbg);border:1px solid var(--tealln);border-radius:12px;padding:10px 13px}
+  .gauge .big{font-size:32px;font-weight:800;color:var(--teal);line-height:1}.gauge .cap{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--teal);text-transform:uppercase}.gauge .lab{font-size:10px;color:#3B6E73}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff}.stat .k{font-size:10.5px;color:var(--muted);font-weight:600}.stat .v{font-size:19px;font-weight:800;margin-top:2px}
+  .barrow{display:flex;align-items:center;gap:10px;margin:6px 0}.barrow .lbl{width:170px;font-size:11.5px;color:var(--muted);text-align:right}
+  .track{flex:1;height:20px;background:#F0ECE3;border-radius:6px;overflow:hidden}.fill{height:100%;border-radius:6px;transition:width .25s,background .25s}.barrow .amt{width:86px;font-size:12.5px;font-weight:700}
+  .verdict{margin-top:11px;padding:10px 13px;border-radius:10px;font-size:12.5px}.v-take{background:var(--gainbg);color:var(--gain)}.v-skip{background:var(--amberbg);color:var(--amber)}
+  .fooled{margin-top:8px;padding:9px 13px;border-radius:10px;background:var(--lossbg);color:var(--loss);font-weight:700;font-size:12px;display:none}
+  button{background:var(--ink);color:#fff;border:0;border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer}button:hover{opacity:.9}button:disabled{opacity:.35;cursor:default}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  svg{display:block;width:100%;height:auto}
+  /* trainer */
+  .tr-top{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:stretch}
+  .netbox{background:#FBFAF7;border:1px solid var(--line);border-radius:12px;padding:6px}
+  .side{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .side .row{display:flex;justify-content:space-between;align-items:baseline}.side .row .k{font-size:11px;color:var(--muted)}.side .row .v{font-size:17px;font-weight:800}
+  .toolbar{display:flex;gap:10px;align-items:center;margin:14px 0}
+  .ctrl{background:#12100E;border-radius:14px;padding:14px 16px;margin:14px 0}
+  .ctrl-top{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:11px}
+  .ctrl-stat{display:flex;flex-direction:column}
+  .ctrl-stat .k{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#8E877C;font-weight:700}
+  .ctrl-stat .v{font-size:20px;font-weight:800;color:#fff;line-height:1.15}
+  .ctrl-stat .v.teal{color:#7FB8BE}
+  .ctrl-bar{flex:1;min-width:170px}
+  .ctrl-bar .lbl{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:#8E877C;font-weight:700;margin-bottom:5px}
+  .ctrl-track{height:9px;background:#2A2723;border-radius:5px;overflow:hidden;display:flex;gap:2px;padding:1px}
+  .ctrl-cell{flex:1;background:#3A3630;border-radius:2px;transition:background .2s}
+  .ctrl-cell.done{background:#147E86}.ctrl-cell.now{background:#F0C674}
+  .ctrl-btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .ctrl-btns button{padding:9px 15px;font-size:12.5px;border-radius:8px}
+  .b-primary{background:#147E86;color:#fff}
+  .b-second{background:#2A2723;color:#EDE8DF;border:1px solid #3A3630}
+  .b-stop{background:#B23A24;color:#fff}
+  .ctrl-msg{font-size:12px;color:#B9B2A6;margin-top:10px;line-height:1.5;min-height:18px}
+  .ctrl-msg b{color:#fff}
+  .math{background:#12100E;border-radius:12px;padding:16px 18px;color:#EDE8DF;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px;line-height:1.9}
+  .math .step{display:grid;grid-template-columns:26px 1fr;gap:8px;padding:2px 0}
+  .math .n{color:#7FB8BE;font-weight:700}
+  .math b{color:#fff}.math .up{color:#8FCB9B}.math .dn{color:#E8A08F}.math .hl{color:#F0C674}
+  .narr{background:var(--tealbg);border:1px solid var(--tealln);border-left:4px solid var(--teal);border-radius:10px;padding:13px 16px;font-size:13.5px;color:#0F5057;margin-bottom:12px;line-height:1.55}
+  .narr b{color:#0A3E43}
+  .wdef{background:#FBFAF7;border:1px dashed var(--tealln);border-radius:11px;padding:12px 15px;font-size:12.5px;color:#3B4A4B;margin-bottom:14px;line-height:1.55}
+  .wdef b{color:var(--teal)}
+  .twojobs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+  .tj{border-radius:11px;padding:13px 15px}
+  .tj-a{background:var(--amberbg);border:1px solid #E7C98A}
+  .tj-b{background:var(--tealbg);border:1px solid var(--tealln)}
+  .tj-h{font-size:12px;font-weight:700;margin-bottom:6px}
+  .tj-a .tj-h{color:#6B5010}.tj-b .tj-h{color:#0F5057}
+  .tj p{margin:0;font-size:12px;line-height:1.55}.tj-a p{color:#8A7238}.tj-b p{color:#3B6E73}
+  .tj p b{color:var(--ink)}
+  .tj code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px}
+  .tj-note{background:#FBFAF7;border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:12px;color:#4E4941;margin-bottom:16px;line-height:1.55}
+  @media(max-width:860px){.twojobs{grid-template-columns:1fr}}
+  .tripcard{display:grid;grid-template-columns:1fr 1.35fr 1.15fr;gap:12px;margin-bottom:16px}
+  .tc-col{background:#FBFAF7;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .tc-offer{background:var(--gainbg);border-color:#B7D3BE}
+  .tc-h{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+  .tc-lane{font-size:12.5px;font-weight:600;margin-bottom:8px}
+  .tc-big{font-size:23px;font-weight:800;color:var(--gain);line-height:1.1}.tc-big span{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-top:3px}
+  .tc-line{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:4px 0;color:var(--muted)}
+  .tc-line b{color:var(--ink);font-weight:700;white-space:nowrap}
+  .tc-line.tot{border-top:1px solid var(--line);margin-top:4px;padding-top:7px;color:var(--ink);font-weight:700}
+  .tc-line b.g{color:var(--gain)}.tc-line b.r{color:var(--loss)}
+  .tc-note{font-size:10.5px;color:var(--muted);margin-top:6px;font-style:italic}
+  @media(max-width:860px){.tripcard{grid-template-columns:1fr}}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .chartbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px}
+  .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th,td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+  td:first-child,th:first-child{text-align:left}
+  tr.cur td{background:var(--tealbg);font-weight:700}
+  .note{background:var(--amberbg);border:1px solid #E7C98A;border-radius:11px;padding:11px 14px;font-size:12.5px;color:#6B5010;margin-top:14px}
+  .toolbar .field{font-size:11.5px;color:var(--muted)}.toolbar .field b{color:var(--ink)}
+  .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .metric{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .metric.key{background:var(--tealbg);border-color:var(--tealln)}
+  .metric .k{font-size:9.5px;font-weight:700;letter-spacing:.4px;color:var(--muted);text-transform:uppercase}.metric.key .k{color:var(--teal)}
+  .metric .v{font-size:21px;font-weight:800;margin-top:3px}.metric.key .v{color:var(--teal)}
+  .metric .d{font-size:10.5px;color:var(--gain);margin-top:1px;font-weight:600}
+  .board{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px}.board.hero{border-color:var(--tealln)}
+  .board h3{margin:0 0 2px;font-size:12.5px}.board .cap{font-size:11px;color:var(--muted);margin:0 0 9px}
+  .lgnd{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}.lgnd i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .dash{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.metrics{grid-template-columns:1fr 1fr}.dash{grid-template-columns:1fr}}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.split .c{border-radius:11px;padding:13px}.split .llm{background:#fff;border:1px solid var(--line)}.split .mdl{background:var(--tealbg);border:1px solid var(--tealln)}
+  .split h4{margin:0 0 4px;font-size:13px}.split p{margin:0;font-size:12px;color:var(--muted)}.split .mdl p{color:#3B6E73}
+  footer{padding:18px 0 40px;color:var(--muted);font-size:11.5px;text-align:center;border-top:1px solid var(--line);margin-top:24px}
+  @media(max-width:860px){.ex,.tr-top,.mgrid,.split{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="tag">MACHINE LEARNING FROM SCRATCH &#183; IN JAVA</span>
+  <h1>Watch a machine-learning algorithm actually learn</h1>
+  <p class="sub">A single number, learned from data by gradient descent — written from scratch in Java,
+  with no machine-learning library. Every prediction, every mistake and every correction is shown, so you can
+  follow the arithmetic yourself.<br><br>
+  <b>The worked example:</b> lorries run a route with a load and come home with one, part of one, or nothing at
+  all. When a lorry runs home empty that diesel earns nothing. Nobody records how often it happens — so the
+  model works it out from finished journeys.</p>
+</header>
+
+<div class="shell">
+<nav class="side">
+  <div class="grp">Fundamentals</div>
+  <a href="#f-what">What we built</a>
+  <a href="#f-tree">The family tree</a>
+  <a href="#f-hill">Gradient descent</a>
+  <a href="#f-cmp">vs other algorithms</a>
+  <div class="grp">Try it</div>
+  <a href="#s-calc">Calculator</a>
+  <a href="#s-train">Train a lane</a>
+  <a href="#s-work">The full working</a>
+  <div class="grp">Context</div>
+  <a href="#s-two">Two systems</a>
+</nav>
+<main>
+
+<section id="f-what">
+  <h2><span class="dot"></span>What we built, and what it is called</h2>
+  <p class="lead">Two words, taken apart. Neither is complicated once you split them.</p>
+  <div class="defs">
+    <div class="def"><h4>&#8220;Regression&#8221; &#8212; predicting a NUMBER</h4>
+      <p>Not a category. The answer is an amount.</p>
+      <div class="eg"><b>&#8220;How much will this trip return?&#8221;</b> &#8594; regression<br>
+      &#8220;Will this trip lose money, yes or no?&#8221; &#8594; that is <b>classification</b>, a different family.</div></div>
+    <div class="def"><h4>&#8220;Linear&#8221; &#8212; only multiply and add</h4>
+      <p>No curves, no conditions, no if/then. Just arithmetic in a straight line.</p>
+      <div class="eg">predicted = planned &#8722; (rate &#215; diesel)<br>
+      One multiply, one subtract. As linear as it gets.</div></div>
+  </div>
+  <div class="tj-note"><b>So: linear regression = predict a number, using only multiply-and-add.</b>
+  And the <i>learning</i> part is that nobody handed us the rate &#8212; the program began at 0% and found
+  51% by being wrong over and over and correcting itself. That correction method has its own name:
+  <b>gradient descent</b>. Two separate things worth keeping straight &#8212; linear regression is the
+  <i>shape</i> of the model; gradient descent is the <i>method</i> for finding its numbers.</div>
+</section>
+
+<section id="f-tree">
+  <h2><span class="dot"></span>Where this sits in the family</h2>
+  <p class="lead">Machine learning is a large word for a small number of ideas. Here is the map, and where yours lands.</p>
+  <div class="tree">machine learning
+&#9500;&#9472;&#9472; <span class="you">supervised</span> <span class="dim">(you have the answers to learn from)</span>   <span class="you">&#8592; you are here</span>
+&#9474;   &#9500;&#9472;&#9472; regression      <span class="dim">predict a number</span>
+&#9474;   &#9474;   &#9500;&#9472;&#9472; <span class="mine">LINEAR REGRESSION</span>   <span class="mine">&#8592; what you built</span>
+&#9474;   &#9474;   &#9500;&#9472;&#9472; regression trees
+&#9474;   &#9474;   &#9492;&#9472;&#9472; gradient boosting
+&#9474;   &#9492;&#9472;&#9472; classification  <span class="dim">predict a label</span>
+&#9492;&#9472;&#9472; unsupervised <span class="dim">(no answers, find structure)</span>
+    &#9492;&#9472;&#9472; clustering      <span class="dim">group similar things</span></div>
+  <p class="lead" style="margin-top:10px"><b>Supervised</b> means every training example came with its answer &#8212;
+  each trip records what it really returned. <b>Unsupervised</b> means no answers at all; you are only
+  looking for structure. You built the simplest leaf on the whole tree, which is the right place to start:
+  everything else is explained in terms of it.</p>
+</section>
+
+<section id="f-hill">
+  <h2><span class="dot"></span>Gradient descent &#8212; walking downhill in fog</h2>
+  <p class="lead"><b>Gradient</b> means slope &#8212; how steep the ground is and which way it tilts.
+  <b>Descent</b> means going down. Put together: feel which way is downhill, take a step, repeat.</p>
+  <div class="panel">
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">
+      Every possible guess for this lane, and how wrong it would be. Computed from the same ten trips.
+      <b>Hover any point.</b></div>
+    <svg id="hillSvg" viewBox="0 0 940 250"></svg>
+    <div class="tj-note" style="margin-top:12px;margin-bottom:0"><b>Why not just scan the whole hill like this?</b>
+    Because we could only draw it here since there is <i>one</i> unknown. With ten lanes it is a
+    ten-dimensional hill; with a real model, thousands. You cannot draw it, scan it, or try every
+    combination. So instead: stand where you are, feel the slope, step downhill. That works at any size
+    &#8212; and it is all gradient descent is.<br><br>
+    <b>This also explains the shrinking moves</b> you see in the table below (+5.00 &#8594; +2.25 &#8594; +0.64
+    &#8594; +0.05). Steep slope, big step; flat ground, small step. Nobody programmed it to slow down &#8212;
+    the hill did that.</div>
+  </div>
+</section>
+
+<section id="f-cmp">
+  <h2><span class="dot"></span>How it differs from the other algorithms</h2>
+  <p class="lead">Same question &#8212; <i>what will this trip return?</i> &#8212; answered three different ways.</p>
+  <div class="panel" style="padding:8px 16px 12px">
+  <table class="cmp">
+    <thead><tr><th style="width:150px">algorithm</th><th>how it answers</th><th style="width:210px">strength</th><th style="width:210px">weakness</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td class="algo">Linear regression<br><span style="font-weight:400;font-size:11px;color:var(--muted)">what you built</span></td>
+        <td class="quote">&#8220;Whatever the lane, subtract 51% of the diesel.&#8221;</td>
+        <td>One rule, and you can <b>read the answer</b> &#8212; 51% <i>is</i> the insight.</td>
+        <td>If reality bends, a straight line cannot follow it.</td></tr>
+      <tr><td class="algo">Decision tree</td>
+        <td class="quote">&#8220;If diesel &gt; &#8377;18,000 and the lane is coastal &#8594; subtract &#8377;9,000. Otherwise if payment terms &gt; 45 days &#8594; subtract &#8377;6,000. Otherwise &#8594; &#8377;3,000.&#8221;</td>
+        <td>Handles &#8220;it depends&#8221; naturally &#8212; a flowchart worked out from the data.</td>
+        <td>Memorises easily; one tree alone is jumpy.</td></tr>
+      <tr><td class="algo">Random forest /<br>gradient boosting</td>
+        <td class="quote">&#8220;Ask 200 different trees and average their answers.&#8221;</td>
+        <td>Usually the most accurate on tabular data like yours.</td>
+        <td>You can no longer point at one number and say <i>this is why</i>.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="tj-note"><b>The real trade is not accuracy &#8212; it is explainability.</b> Your model hands you
+  <b>51%</b>, a number you can say out loud to a lorry owner: <i>&#8220;half the diesel getting home earns
+  nothing on this route.&#8221;</i> A boosted forest would likely predict more accurately and tell you nothing
+  you could repeat.</div>
+</section>
+
+<section>
+  <div class="grid3">
+    <div class="card c-good"><div class="k">Offer on paper</div><div class="v">+₹2,900</div><div class="n">14% margin — looks worth taking</div></div>
+    <div class="card c-plain"><div class="k">The weight to learn</div><div class="v">50% empty</div><div class="n">this lane's hidden rate — the target</div></div>
+    <div class="card c-bad"><div class="k">Real return</div><div class="v">−₹5,600</div><div class="n">diesel burned running home empty</div></div>
+  </div>
+</section>
+
+<section>
+  <a id="s-calc"></a><h2><span class="dot"></span>Calculator — see how a lane's rate changes the outcome</h2>
+  <p class="lead">A what-if calculator: pick any lane, drag the numbers, and watch the same offer flip between profit and loss. <b>Nothing is trained here</b> — the rates shown are the ones already stored for each lane. The training section below is separate.</p>
+  <div class="panel"><div class="ex">
+    <div class="controls">
+      <label>Lane</label><select id="lane"></select>
+      <div class="gauge"><div><div class="cap">Empty-return rate</div><div class="lab">the learning target</div></div><div class="big" id="rateBig">50%</div></div>
+      <label>Quoted price · <span class="val" id="qpVal"></span></label><input type="range" id="qp" min="10000" max="40000" step="500" value="21000">
+      <label>Total cost · <span class="val" id="tcVal"></span></label><input type="range" id="tc" min="8000" max="38000" step="500" value="18100">
+      <label>Of which diesel · <span class="val" id="dsVal"></span></label><input type="range" id="ds" min="4000" max="26000" step="500" value="12000">
+    </div>
+    <div>
+      <div class="readout"><div class="stat"><div class="k">Planned profit (on paper)</div><div class="v" id="planned"></div></div><div class="stat"><div class="k">Real profit (lane counted)</div><div class="v" id="realized"></div></div></div>
+      <div class="barrow"><div class="lbl">planned</div><div class="track"><div class="fill" id="barPlanned" style="background:#7FA98A"></div></div><div class="amt" id="amtPlanned"></div></div>
+      <div class="barrow"><div class="lbl">empty-return loss (rate × diesel)</div><div class="track"><div class="fill" id="barLoss" style="background:#D08C7E"></div></div><div class="amt" id="amtLoss"></div></div>
+      <div class="barrow"><div class="lbl">real profit</div><div class="track"><div class="fill" id="barReal"></div></div><div class="amt" id="amtReal"></div></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="fooled" id="fooled">⚠ The margin looks fine, yet this route turns it into a loss. That gap is what the model learns to see.</div>
+    </div>
+  </div></div>
+</section>
+
+<section>
+  <a id="s-train"></a><h2><span class="dot"></span>How one lane's weight is learned — trip by trip</h2>
+  <p class="lead">We take <b>every trip on one lane</b> and let each one nudge that lane's weight. Other lanes have their own weights, learned from their own trips — a Chennai trip tells us nothing about this corridor.</p>
+  <div style="display:flex;gap:12px;align-items:center;background:#FBFAF7;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Train this lane</span>
+    <select id="trainLane" style="width:auto;min-width:250px"></select>
+    <span style="font-size:11.5px;color:var(--muted)">Each lane has its own ten trips and its own weight to find. Switching resets the training.</span>
+  </div>
+  <div class="panel">
+    <div class="wdef"><b>One word first — "the weight."</b> The model keeps a single adjustable number for this lane: its guess of the empty-return rate. In machine learning, any number a model tunes is called a <b>weight</b> — here it's simply the <b>rate</b>, 0% to 100%. Getting that one number right is the entire job.</div>
+
+    <div class="twojobs">
+      <div class="tj tj-a">
+        <div class="tj-h">① Nobody knows this lane's rate — including us</div>
+        <p>Each trip below just records what happened on the way home: a full load, a part load, or nothing. There is <b>no percentage stored anywhere</b> to look up or copy.</p>
+      </div>
+      <div class="tj tj-b">
+        <div class="tj-h">② The model has to work it out</div>
+        <p>It sees only planned profit, diesel, and what each trip really returned. From those it must settle on <b>one number for this lane</b> — how much of the return diesel goes unpaid, typically.</p>
+      </div>
+    </div>
+    <div class="tj-note"><b>Why the guess wobbles:</b> one trip came home fully loaded (wasted nothing), the next ran completely empty (wasted everything). Each pulls the guess a different way. Small steps let all ten average out instead of the last one deciding. Watch it swing, then settle.</div>
+    <div class="chartbox" style="margin-bottom:14px">
+      <h4>THE 10 TRIPS ON THIS LANE · VIJAYAWADA → BENGALURU, 550 KM</h4>
+      <table id="tripTbl"><thead><tr><th>#</th><th>planned</th><th>diesel (out)</th><th style="text-align:left">what happened coming home</th><th>diesel wasted</th><th>really returned</th></tr></thead><tbody></tbody></table>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px">5 of 10 came home empty → the lane's true rate is <b style="color:var(--teal)">50%</b>. The model is never told this — it must find it.</div>
+    </div>
+    <div class="tr-top">
+      <div class="netbox"><svg id="netSvg" viewBox="0 0 620 220"></svg></div>
+      <div class="side">
+        <div class="row"><span class="k">step</span><span class="v" id="sIter">0</span></div>
+        <div class="row"><span class="k">empty-rate · the model's guess</span><span class="v" id="sW" style="color:var(--teal)">0%</span></div>
+        <div class="row"><span class="k">prediction</span><span class="v" id="sPred">—</span></div>
+        <div class="row"><span class="k">error vs real</span><span class="v" id="sErr" style="color:var(--loss)">—</span></div>
+        <div class="row" style="border-top:1px dashed var(--line);padding-top:9px"><span class="k">trips seen</span><span class="v" id="sSeen" style="color:var(--muted)">0</span></div>
+      </div>
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <div class="ctrl-stat"><span class="k">pass</span><span class="v" id="cPass">0</span></div>
+        <div class="ctrl-stat"><span class="k">trip in pass</span><span class="v" id="cTrip">0 / 10</span></div>
+        <div class="ctrl-stat"><span class="k">total trips seen</span><span class="v" id="cSeen">0</span></div>
+        <div class="ctrl-stat"><span class="k">current guess</span><span class="v teal" id="cW">0.00%</span></div>
+        <div class="ctrl-stat"><span class="k">average miss</span><span class="v" id="cMae">&#8212;</span></div>
+        <div class="ctrl-stat"><span class="k">these 10 trips average</span><span class="v" id="cTarget">&#8212;</span></div>
+        <div class="ctrl-bar">
+          <div class="lbl">progress through this pass</div>
+          <div class="ctrl-track" id="cTrack"></div>
+        </div>
+      </div>
+      <div class="ctrl-btns">
+        <button id="stepBtn" class="b-primary">&#9654; One trip</button>
+        <button id="passBtn" class="b-second">&#9197; Run this pass</button>
+        <button id="trainBtn" class="b-second">&#9889; Run until settled</button>
+        <button id="stopBtn" class="b-stop" style="display:none">&#9632; Stop</button>
+        <button id="resetBtn" class="b-second">&#8634; Reset</button>
+        <span style="font-size:11px;color:#8E877C">step size
+          <select id="lrSel" style="width:auto;padding:4px 7px;font-size:11px;background:#2A2723;color:#EDE8DF;border:1px solid #3A3630;margin-left:5px">
+            <option value="0.15">0.15 &#8212; fast, lands a few points off</option>
+            <option value="0.05" selected>0.05 &#8212; balanced</option>
+            <option value="0.01">0.01 &#8212; slow, most accurate</option>
+          </select></span>
+        <span style="margin-left:auto;font-size:11px;color:#8E877C">speed
+          <select id="spd" style="width:auto;padding:4px 7px;font-size:11px;background:#2A2723;color:#EDE8DF;border:1px solid #3A3630;margin-left:5px">
+            <option value="1200">slow</option><option value="700" selected>normal</option><option value="250">fast</option>
+          </select></span>
+      </div>
+      <div class="ctrl-msg" id="trainMsg">Press <b>One trip</b> to feed the model a single journey, or <b>Run this pass</b> to walk all 10 with a pause between each.</div>
+    </div>
+
+    <div class="narr" id="narr">The model knows nothing about this lane yet — it assumes trucks always find a load home (0% empty). Press <b>Step</b> to feed it the first trip and watch the guess move.</div>
+
+    <div class="math" id="mathPanel">
+      <div class="step"><span class="n">—</span><span>Press <b>Step</b> to run the first iteration.</span></div>
+    </div>
+
+    <div class="mgrid">
+      <div class="chartbox">
+        <h4>THE GUESS WOBBLES TOWARD ITS ANSWER &nbsp;<span style="font-weight:500;color:#B23A24">&#9679; empty-ish trip</span> <span style="font-weight:500;color:#2F5B3C">&#9679; loaded trip</span></h4>
+        <svg id="wSvg" viewBox="0 0 460 180"></svg>
+      </div>
+      <div class="chartbox">
+        <h4>MISS PER TRIP &nbsp;<span style="font-weight:500;color:var(--muted)">how many rupees off, each step</span></h4>
+        <svg id="eSvg" viewBox="0 0 460 180"></svg>
+      </div>
+      <div class="chartbox">
+        <h4>TRAINING LOSS &#8212; AVERAGE RUPEES OFF, ACROSS ALL 10 TRIPS</h4>
+        <svg id="lossSvg" viewBox="0 0 480 210"></svg>
+        <div id="lossNote" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+      </div>
+      <div class="chartbox">
+        <h4>PREDICTED vs WHAT REALLY HAPPENED &#8212; HOVER A DOT</h4>
+        <svg id="scatSvg" viewBox="0 0 480 210"></svg>
+        <div id="scatNote" style="font-size:11px;color:var(--muted);margin-top:6px">Each dot is one trip. On the dashed line = predicted exactly right.</div>
+      </div>
+    </div>
+
+    <div class="chartbox" style="margin-top:14px">
+      <a id="s-work"></a><h4>FULL WORKING &#8212; EVERY TRIP, EVERY NUMBER</h4>
+      <table id="log"><thead>
+        <tr>
+          <th rowspan="2">step</th><th rowspan="2">pass</th><th rowspan="2">trip</th>
+          <th colspan="4" style="text-align:center;background:#F4F1EA">THE TRIP</th>
+          <th colspan="2" style="text-align:center;background:#FDF5E8">MODEL'S GUESS</th>
+          <th colspan="3" style="text-align:center;background:#E1F0F1">THE CORRECTION</th>
+          <th rowspan="2">W after</th>
+        </tr>
+        <tr>
+          <th style="text-align:left">coming home</th><th>planned</th><th>diesel</th><th>really</th>
+          <th>W before</th><th>predicted<br><span style="font-weight:400;text-transform:none;font-size:9px">planned &#8722; W&#215;diesel</span></th>
+          <th>says<br><span style="font-weight:400;text-transform:none;font-size:9px">(planned&#8722;really)&#247;diesel</span></th>
+          <th>gap<br><span style="font-weight:400;text-transform:none;font-size:9px">says &#8722; W</span></th>
+          <th>move<br><span style="font-weight:400;text-transform:none;font-size:9px">step &#215; gap</span></th>
+        </tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="note"><b>The rule, in words:</b> predict with the current rate, see how far off the real answer is, work out how many points of rate would close that gap, then move only a <i>fraction</i> of the way — the <b>step size</b> (0.4 here). Repeat over every trip and every lane. That is gradient descent; there is nothing more to it.<br><br><b>Two numbers, don't mix them up:</b> the rate we're hunting is <b>50%</b> — a fact about this road. The step size <b>0.4</b> is a knob we picked — nothing to do with trucking. Set it to 1.0 and the model lands on 50% in a single jump; set it to 2.0 and it overshoots past 50% and oscillates. The destination never changes, only the journey.</div>
+  </div>
+</section>
+
+
+
+<section>
+  <a id="s-two"></a><h2><span class="dot"></span>Two kinds of model, side by side</h2>
+  <div class="split">
+    <div class="c llm"><h4>A large language model</h4><p>World knowledge and language. It can explain <i>why</i> empty returns matter — but it has not measured this route, so it cannot tell you the number.</p></div>
+    <div class="c mdl"><h4>A small numeric model</h4><p>One number, learned from outcomes. It cannot explain anything — but it knows this route wastes about half its return fuel, which no offer ever states.</p></div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<footer>Linear regression written from scratch in Java &#183; every weight and every step shown &#183; illustrative data</footer>
+</div>
+
+<script>
+// ===== explorer =====
+const LANES=[["Chennai → Bengaluru",0.20],["Hyderabad → Mumbai",0.25],["Guntur → Hyderabad",0.40],["Kurnool → Hyderabad",0.45],["Nellore → Chennai",0.45],["Tirupati → Chennai",0.50],["Vijayawada → Bengaluru",0.50],["Anantapur → Chennai",0.55],["Vijayawada → Visakhapatnam",0.60]];
+const MIN=9,rupee=n=>(n<0?"−₹":"₹")+Math.round(Math.abs(n)).toLocaleString('en-IN');
+const laneSel=document.getElementById('lane');
+LANES.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l[0]+"  ·  "+Math.round(l[1]*100)+"% empty";laneSel.appendChild(o);});laneSel.value=6;
+const qp=document.getElementById('qp'),tc=document.getElementById('tc'),ds=document.getElementById('ds');
+function draw(){const rate=LANES[laneSel.value][1],quoted=+qp.value,cost=+tc.value,diesel=Math.min(+ds.value,cost);
+  const planned=quoted-cost,margin=quoted?planned/quoted*100:0,loss=rate*diesel,real=planned-loss;
+  document.getElementById('rateBig').textContent=Math.round(rate*100)+"%";document.getElementById('qpVal').textContent=rupee(quoted);document.getElementById('tcVal').textContent=rupee(cost);document.getElementById('dsVal').textContent=rupee(diesel);
+  const pe=document.getElementById('planned');pe.textContent=rupee(planned);pe.style.color=planned>=0?'var(--gain)':'var(--loss)';
+  const re=document.getElementById('realized');re.textContent=rupee(real);re.style.color=real>=0?'var(--gain)':'var(--loss)';
+  const sc=Math.max(Math.abs(planned),loss,Math.abs(real),3000),pct=v=>Math.min(100,Math.abs(v)/sc*100);
+  document.getElementById('barPlanned').style.width=pct(planned)+'%';document.getElementById('barLoss').style.width=pct(loss)+'%';
+  const br=document.getElementById('barReal');br.style.width=pct(real)+'%';br.style.background=real>=0?'#7FA98A':'#B23A24';
+  document.getElementById('amtPlanned').textContent=rupee(planned);document.getElementById('amtLoss').textContent="−"+rupee(loss);
+  const ar=document.getElementById('amtReal');ar.textContent=rupee(real);ar.style.color=real>=0?'var(--gain)':'var(--loss)';
+  const v=document.getElementById('verdict');
+  if(margin>=MIN){v.className='verdict v-take';v.innerHTML='A margin rule would say <b>TAKE</b> — '+margin.toFixed(1)+'% clears the '+MIN+'% bar.';}
+  else{v.className='verdict v-skip';v.innerHTML='A margin rule would say <b>SKIP</b> — '+margin.toFixed(1)+'% is below '+MIN+'%.';}
+  document.getElementById('fooled').style.display=(margin>=MIN&&real<0)?'block':'none';}
+[laneSel,qp,tc,ds].forEach(e=>e.addEventListener('input',draw));draw();
+
+// ===== step-by-step trainer =====
+// Trip economics (planned profit, diesel) are REAL rows from database/seed/incoming_load.sql.
+// What happened coming home is illustrative -- we have no owner reports yet.
+const LANE_TRIPS = {"Nellore → Chennai": {"rate": 0.45, "trips": [{"n": 1, "p": 799, "d": 5810, "waste": 0.45, "story": "small load + parcel work", "a": -1816}, {"n": 2, "p": 285, "d": 6073, "waste": 0.8, "story": "tiny parcel load only", "a": -4573}, {"n": 3, "p": 3645, "d": 6562, "waste": 0.1, "story": "full load, minor gap", "a": 2989}, {"n": 4, "p": 446, "d": 6370, "waste": 0.6, "story": "part load of tiles", "a": -3376}, {"n": 5, "p": 2422, "d": 5898, "waste": 0.35, "story": "part load, dropped midway", "a": 358}, {"n": 6, "p": 387, "d": 5723, "waste": 0.7, "story": "short part load", "a": -3619}, {"n": 7, "p": 3356, "d": 5635, "waste": 0.65, "story": "light part load", "a": -307}, {"n": 8, "p": 741, "d": 5268, "waste": 0.4, "story": "part load, two thirds home", "a": -1366}, {"n": 9, "p": 1039, "d": 5775, "waste": 0.2, "story": "two small loads home", "a": -116}, {"n": 10, "p": 1062, "d": 6580, "waste": 0.25, "story": "part load most of the way", "a": -583}]}, "Guntur → Hyderabad": {"rate": 0.4, "trips": [{"n": 1, "p": 2012, "d": 9657, "waste": 0.6, "story": "part load of tiles", "a": -3782}, {"n": 2, "p": 2614, "d": 10150, "waste": 0.85, "story": "barely anything", "a": -6014}, {"n": 3, "p": 2969, "d": 10237, "waste": 0.15, "story": "near-full load back", "a": 1433}, {"n": 4, "p": 2515, "d": 10440, "waste": 0.0, "story": "full load back", "a": 2515}, {"n": 5, "p": 966, "d": 9454, "waste": 0.15, "story": "near-full load back", "a": -452}, {"n": 6, "p": 2617, "d": 10498, "waste": 0.35, "story": "part load, dropped midway", "a": -1057}, {"n": 7, "p": 556, "d": 9309, "waste": 0.1, "story": "full load, minor gap", "a": -375}, {"n": 8, "p": 3300, "d": 9976, "waste": 0.6, "story": "part load of tiles", "a": -2686}, {"n": 9, "p": 1112, "d": 10382, "waste": 0.75, "story": "small load only", "a": -6674}, {"n": 10, "p": 711, "d": 8874, "waste": 0.45, "story": "small load + parcel work", "a": -3282}]}, "Chennai → Bengaluru": {"rate": 0.2, "trips": [{"n": 1, "p": 1906, "d": 10920, "waste": 0.0, "story": "full load back", "a": 1906}, {"n": 2, "p": 2222, "d": 12110, "waste": 0.0, "story": "full load back", "a": 2222}, {"n": 3, "p": 2479, "d": 12565, "waste": 0.3, "story": "decent part load", "a": -1290}, {"n": 4, "p": 3834, "d": 12915, "waste": 0.6, "story": "part load of tiles", "a": -3915}, {"n": 5, "p": 3635, "d": 12425, "waste": 0.1, "story": "full load, minor gap", "a": 2392}, {"n": 6, "p": 1296, "d": 11795, "waste": 0.0, "story": "full load back", "a": 1296}, {"n": 7, "p": 1546, "d": 12320, "waste": 0.55, "story": "half load, dropped early", "a": -5230}, {"n": 8, "p": 1425, "d": 12075, "waste": 0.35, "story": "part load, dropped midway", "a": -2801}, {"n": 9, "p": 2502, "d": 13125, "waste": 0.0, "story": "full load back", "a": 2502}, {"n": 10, "p": -1414, "d": 13160, "waste": 0.1, "story": "full load, minor gap", "a": -2730}]}, "Hyderabad → Mumbai": {"rate": 0.25, "trips": [{"n": 1, "p": 631, "d": 21868, "waste": 0.15, "story": "near-full load back", "a": -2649}, {"n": 2, "p": 1242, "d": 24566, "waste": 0.6, "story": "part load of tiles", "a": -13498}, {"n": 3, "p": 1650, "d": 23430, "waste": 0.15, "story": "near-full load back", "a": -1864}, {"n": 4, "p": 5038, "d": 24353, "waste": 0.5, "story": "part load, covered half the way", "a": -7138}, {"n": 5, "p": -1371, "d": 24211, "waste": 0.0, "story": "full load back", "a": -1371}, {"n": 6, "p": 248, "d": 24282, "waste": 0.45, "story": "small load + parcel work", "a": -10679}, {"n": 7, "p": 6365, "d": 21868, "waste": 0.25, "story": "part load most of the way", "a": 898}, {"n": 8, "p": 11077, "d": 25489, "waste": 0.15, "story": "near-full load back", "a": 7254}, {"n": 9, "p": 8437, "d": 24069, "waste": 0.15, "story": "near-full load back", "a": 4827}, {"n": 10, "p": 703, "d": 22862, "waste": 0.1, "story": "full load, minor gap", "a": -1583}]}, "Guntur → Chennai": {"rate": 0.45, "trips": [{"n": 1, "p": -555, "d": 15916, "waste": 0.45, "story": "small load + parcel work", "a": -7717}, {"n": 2, "p": 1104, "d": 16284, "waste": 0.8, "story": "tiny parcel load only", "a": -11923}, {"n": 3, "p": 1127, "d": 16238, "waste": 0.1, "story": "full load, minor gap", "a": -497}, {"n": 4, "p": 2162, "d": 14766, "waste": 0.6, "story": "part load of tiles", "a": -6698}, {"n": 5, "p": 1609, "d": 16606, "waste": 0.35, "story": "part load, dropped midway", "a": -4203}, {"n": 6, "p": 2808, "d": 16790, "waste": 0.7, "story": "short part load", "a": -8945}, {"n": 7, "p": 4470, "d": 16146, "waste": 0.65, "story": "light part load", "a": -6025}, {"n": 8, "p": 1878, "d": 15134, "waste": 0.4, "story": "part load, two thirds home", "a": -4176}, {"n": 9, "p": 3269, "d": 17066, "waste": 0.2, "story": "two small loads home", "a": -144}, {"n": 10, "p": 1803, "d": 13938, "waste": 0.25, "story": "part load most of the way", "a": -1682}]}, "Kurnool → Hyderabad": {"rate": 0.45, "trips": [{"n": 1, "p": 1546, "d": 7413, "waste": 0.45, "story": "small load + parcel work", "a": -1790}, {"n": 2, "p": 2448, "d": 6615, "waste": 0.8, "story": "tiny parcel load only", "a": -2844}, {"n": 3, "p": 2991, "d": 6951, "waste": 0.1, "story": "full load, minor gap", "a": 2296}, {"n": 4, "p": 3318, "d": 7833, "waste": 0.6, "story": "part load of tiles", "a": -1382}, {"n": 5, "p": 1551, "d": 6804, "waste": 0.35, "story": "part load, dropped midway", "a": -830}, {"n": 6, "p": 891, "d": 7329, "waste": 0.7, "story": "short part load", "a": -4239}, {"n": 7, "p": 1312, "d": 6741, "waste": 0.65, "story": "light part load", "a": -3070}, {"n": 8, "p": 2335, "d": 6762, "waste": 0.4, "story": "part load, two thirds home", "a": -370}, {"n": 9, "p": 833, "d": 6321, "waste": 0.2, "story": "two small loads home", "a": -431}, {"n": 10, "p": 123, "d": 7812, "waste": 0.25, "story": "part load most of the way", "a": -1830}]}, "Vijayawada → Visakhapatnam": {"rate": 0.6, "trips": [{"n": 1, "p": 534, "d": 12985, "waste": 0.25, "story": "part load most of the way", "a": -2712}, {"n": 2, "p": -780, "d": 10535, "waste": 0.6, "story": "part load of tiles", "a": -7101}, {"n": 3, "p": 3552, "d": 11200, "waste": 0.5, "story": "part load, covered half the way", "a": -2048}, {"n": 4, "p": 1393, "d": 11445, "waste": 0.65, "story": "light part load", "a": -6046}, {"n": 5, "p": 3174, "d": 13090, "waste": 1.0, "story": "nothing available, ran empty", "a": -9916}, {"n": 6, "p": 4970, "d": 13230, "waste": 0.75, "story": "small load only", "a": -4952}, {"n": 7, "p": 4108, "d": 12985, "waste": 0.85, "story": "barely anything", "a": -6929}, {"n": 8, "p": 4392, "d": 11690, "waste": 0.1, "story": "full load, minor gap", "a": 3223}, {"n": 9, "p": 1556, "d": 11200, "waste": 0.5, "story": "part load, covered half the way", "a": -4044}, {"n": 10, "p": -81, "d": 12600, "waste": 0.8, "story": "tiny parcel load only", "a": -10161}]}, "Vijayawada → Bengaluru": {"rate": 0.5, "trips": [{"n": 1, "p": -2376, "d": 17270, "waste": 0.25, "story": "part load most of the way", "a": -6694}, {"n": 2, "p": 917, "d": 17765, "waste": 0.45, "story": "small load + parcel work", "a": -7077}, {"n": 3, "p": 4103, "d": 16940, "waste": 0.8, "story": "tiny parcel load only", "a": -9449}, {"n": 4, "p": 4309, "d": 16610, "waste": 0.4, "story": "part load, two thirds home", "a": -2335}, {"n": 5, "p": 3310, "d": 20845, "waste": 0.35, "story": "part load, dropped midway", "a": -3986}, {"n": 6, "p": 1195, "d": 18590, "waste": 0.5, "story": "part load, covered half the way", "a": -8100}, {"n": 7, "p": 7009, "d": 20845, "waste": 0.4, "story": "part load, two thirds home", "a": -1329}, {"n": 8, "p": 1415, "d": 18040, "waste": 0.1, "story": "full load, minor gap", "a": -389}, {"n": 9, "p": 1048, "d": 18315, "waste": 0.75, "story": "small load only", "a": -12688}, {"n": 10, "p": 3234, "d": 17215, "waste": 1.0, "story": "nothing available, ran empty", "a": -13981}]}, "Tirupati → Chennai": {"rate": 0.5, "trips": [{"n": 1, "p": 947, "d": 4144, "waste": 0.25, "story": "part load most of the way", "a": -89}, {"n": 2, "p": 661, "d": 4414, "waste": 0.45, "story": "small load + parcel work", "a": -1325}, {"n": 3, "p": 2948, "d": 4860, "waste": 0.8, "story": "tiny parcel load only", "a": -940}, {"n": 4, "p": 82, "d": 4077, "waste": 0.4, "story": "part load, two thirds home", "a": -1549}, {"n": 5, "p": 599, "d": 4198, "waste": 0.35, "story": "part load, dropped midway", "a": -870}, {"n": 6, "p": 1477, "d": 5090, "waste": 0.5, "story": "part load, covered half the way", "a": -1068}, {"n": 7, "p": -326, "d": 4388, "waste": 0.4, "story": "part load, two thirds home", "a": -2081}, {"n": 8, "p": -292, "d": 4914, "waste": 0.1, "story": "full load, minor gap", "a": -783}, {"n": 9, "p": 2821, "d": 5090, "waste": 0.75, "story": "small load only", "a": -996}, {"n": 10, "p": 561, "d": 4900, "waste": 1.0, "story": "nothing available, ran empty", "a": -4339}]}, "Anantapur → Chennai": {"rate": 0.55, "trips": [{"n": 1, "p": 5081, "d": 10745, "waste": 0.8, "story": "tiny parcel load only", "a": -3515}, {"n": 2, "p": 3205, "d": 12355, "waste": 0.8, "story": "tiny parcel load only", "a": -6679}, {"n": 3, "p": 5458, "d": 11375, "waste": 0.6, "story": "part load of tiles", "a": -1367}, {"n": 4, "p": 3297, "d": 12565, "waste": 0.3, "story": "decent part load", "a": -472}, {"n": 5, "p": 3507, "d": 10605, "waste": 0.35, "story": "part load, dropped midway", "a": -205}, {"n": 6, "p": 5521, "d": 11585, "waste": 0.3, "story": "decent part load", "a": 2046}, {"n": 7, "p": 857, "d": 11305, "waste": 0.9, "story": "almost nothing, mostly empty", "a": -9318}, {"n": 8, "p": 432, "d": 13020, "waste": 0.8, "story": "tiny parcel load only", "a": -9984}, {"n": 9, "p": 977, "d": 12040, "waste": 0.1, "story": "full load, minor gap", "a": -227}, {"n": 10, "p": -241, "d": 12845, "waste": 0.55, "story": "half load, dropped early", "a": -7306}]}};
+let LANE = 'Vijayawada \u2192 Bengaluru';
+let TRIPS = LANE_TRIPS[LANE].trips;
+let EMERGENT = TRIPS.reduce((x,t)=>x+t.waste,0)/TRIPS.length;
+const T={lr:0.05};
+let MAX_STEPS=TRIPS.length*4;   // Step/Auto walk 4 passes; Train raises this itself   // small step: ten conflicting trips must average, not fight
+let w=0, iter=0, hist=[];  // hist: {iter,trip,w,pred,err,corr,wNew}
+
+function renderTripTable(){
+  const tb=document.querySelector('#tripTbl tbody'); if(!tb) return;
+  tb.innerHTML='';
+  TRIPS.forEach(t=>{const tr=document.createElement('tr');tr.id='trow'+t.n;
+    const col=t.waste>=0.75?'#B23A24':(t.waste<=0.25?'#2F5B3C':'#8A5A05');
+    tr.innerHTML=`<td>${t.n}</td><td>${rupee(t.p)}</td><td>${rupee(t.d)}</td>
+    <td style="text-align:left;color:${col}">${t.story}</td>
+    <td style="font-weight:700;color:${col}">${(t.waste*100).toFixed(0)}%</td>
+    <td style="color:${t.a<0?'#B23A24':'#2F5B3C'}">${rupee(t.a)}</td>`;
+    tb.appendChild(tr);});
+  const h=document.querySelector('#tripTbl');
+  const cap=h&&h.previousElementSibling;
+  if(cap&&cap.tagName==='H4') cap.innerHTML='THE 10 TRIPS ON THIS LANE \u00b7 '+LANE.toUpperCase();
+}
+renderTripTable();
+const fmt=n=>Math.round(n).toLocaleString('en-IN');
+const pctf=x=>(x*100).toFixed(1)+'%';
+
+function netSVG(){
+  const cur=hist.length?hist[hist.length-1].trip:TRIPS[0];
+  const wl=w, thick=2+wl*10, col=`rgba(20,126,134,${0.35+wl})`;
+  document.getElementById('netSvg').innerHTML=`
+    <rect x="20" y="26" width="150" height="46" rx="9" fill="#fff" stroke="#E4DFD5"/>
+    <text x="95" y="46" font-size="11" fill="#6E6961" text-anchor="middle">planned profit</text>
+    <text x="95" y="63" font-size="14" font-weight="700" fill="#2F5B3C" text-anchor="middle">${rupee(cur.p)}</text>
+    <rect x="20" y="150" width="150" height="46" rx="9" fill="#fff" stroke="#E4DFD5"/>
+    <text x="95" y="170" font-size="11" fill="#6E6961" text-anchor="middle">diesel</text>
+    <text x="95" y="187" font-size="14" font-weight="700" fill="#2A2A28" text-anchor="middle">${rupee(cur.d)}</text>
+    <line x1="170" y1="49" x2="330" y2="96" stroke="#B8B2A6" stroke-width="2"/>
+    <line x1="170" y1="173" x2="330" y2="120" stroke="${col}" stroke-width="${thick}"/>
+    <rect x="186" y="131" width="116" height="26" rx="13" fill="#12100E"/>
+    <text x="244" y="148" font-size="10.5" font-weight="700" fill="#F0C674" text-anchor="middle">× empty-rate ${Math.round(wl*100)}%</text>
+    <rect x="330" y="78" width="150" height="60" rx="10" fill="#E1F0F1" stroke="#147E86"/>
+    <text x="405" y="100" font-size="10.5" fill="#3B6E73" text-anchor="middle">predicted profit</text>
+    <text x="405" y="122" font-size="16" font-weight="800" fill="#0F5057" text-anchor="middle" id="netPred">—</text>
+    <line x1="480" y1="108" x2="520" y2="108" stroke="#9A948A" stroke-width="1.5"/>
+    <rect x="520" y="82" width="90" height="52" rx="9" fill="#fff" stroke="#D08C7E"/>
+    <text x="565" y="102" font-size="10" fill="#9C5A4A" text-anchor="middle">trip #${cur.n} really</text>
+    <text x="565" y="122" font-size="13" font-weight="800" fill="#B23A24" text-anchor="middle">${rupee(cur.a)}</text>
+    <path d="M405 138 L405 205 L244 205 L244 160" fill="none" stroke="#E7C98A" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+    <text x="330" y="216" font-size="10" fill="#8A7238" text-anchor="middle">the miss pushes the rate up ↑</text>
+    <text x="95" y="216" font-size="9" fill="#9A948A" text-anchor="middle">diesel × rate = the loss</text>
+    <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L5,3 L0,6 Z" fill="#E7C98A"/></marker></defs>`;
+  const p=document.getElementById('netPred'); if(p) p.textContent = hist.length? rupee(hist[hist.length-1].pred):'—';
+}
+
+const LR=()=>((document.getElementById('lrSel')||{}).value||T.lr);
+function renderMath(h){
+  const t=h.trip, perPt=t.d*0.01, off=h.err, pts=off/perPt, up=off>0;
+  document.getElementById('mathPanel').innerHTML=`
+   <div class="step"><span class="n">0</span><span>next trip: <b>#${t.n}</b> — planned <b>${rupee(t.p)}</b>, diesel <b>${rupee(t.d)}</b>, coming home: <b>${t.story}</b>, so it really returned <b>${rupee(t.a)}</b></span></div>
+   <div class="step"><span class="n">1</span><span>current guess for this lane:  <b>${pctf(h.w)}</b></span></div>
+   <div class="step"><span class="n">2</span><span>predict:  ${fmt(t.p)} \u2212 <b>${h.w.toFixed(3)}</b> \u00d7 ${fmt(t.d)}  =  <b>${rupee(h.pred)}</b></span></div>
+   <div class="step"><span class="n">3</span><span>what it really returned:  <b>${rupee(t.a)}</b></span></div>
+   <div class="step"><span class="n">4</span><span>miss:  ${rupee(h.pred)} \u2212 (${rupee(t.a)})  =  <span class="${up?'dn':'up'}">${up?'+':''}${fmt(off)}</span>  <span class="hl">(${up?'guessed too high — rate must RISE':'guessed too low — rate must FALL'})</span></span></div>
+   <div class="step"><span class="n">5</span><span>in rate terms:  ${fmt(Math.abs(off))} \u00f7 ${fmt(perPt)} per point  =  <b>${Math.abs(pts).toFixed(1)} points</b>  <span class="hl">(1 point of rate = \u20b9${fmt(perPt)} on this trip)</span></span></div>
+   <div class="step"><span class="n">6</span><span>take only ${LR()} of it — so all ten trips get a say:  ${pts.toFixed(1)} \u00d7 ${LR()}  =  <span class="${up?'up':'dn'}">${up?'+':''}${(h.corr*100).toFixed(1)} pts</span>   \u2192   new guess <b>${pctf(h.wNew)}</b></span></div>`;
+}
+
+
+// ===== REAL charts, every number computed from the 10 trips =====
+function maeAt(wv){let t=0;for(const x of TRIPS)t+=Math.abs((x.p-wv*x.d)-x.a);return t/TRIPS.length;}
+// the best a single number can possibly do -- the floor
+let BESTW=0,BESTMAE=1e12;
+for(let x=0;x<=1;x+=0.0005){const m=maeAt(x);if(m<BESTMAE){BESTMAE=m;BESTW=x;}}
+
+function blankChart(id,msg){
+  const S=document.getElementById(id); if(!S) return false;
+  const w=S.getAttribute('viewBox').split(' ')[2], h=S.getAttribute('viewBox').split(' ')[3];
+  S.innerHTML=`<rect x="0" y="0" width="${w}" height="${h}" fill="#FBFAF7" rx="8"/>`+
+    `<text x="${w/2}" y="${h/2}" font-size="11" fill="#B8B2A6" text-anchor="middle">${msg}</text>`;
+  return true;
+}
+
+// ---- the error hill: how wrong every possible guess would be, from the same trips ----
+function drawHill(){
+  const S=document.getElementById('hillSvg'); if(!S) return;
+  const miss=g=>TRIPS.reduce((t,x)=>t+Math.abs((x.p-g*x.d)-x.a),0)/TRIPS.length;
+  const pts=[]; for(let i=0;i<=100;i++){const g=i/100; pts.push({g:g,e:miss(g)});}
+  const lo=Math.min(...pts.map(q=>q.e)), hi=Math.max(...pts.map(q=>q.e));
+  const best=pts.reduce((a,b)=>b.e<a.e?b:a);
+  const L=92,R=910,T=26,B=196;
+  const X=g=>L+g*(R-L), Y=e=>B-((e-lo)/(hi-lo))*(B-T);
+  let g='';
+  for(let t=0;t<=4;t++){const e=lo+(t/4)*(hi-lo), y=Y(e);
+    g+=`<line x1="${L}" y1="${y}" x2="${R}" y2="${y}" stroke="#EDE8DF"/>`;
+    g+=`<text x="${L-8}" y="${y+3}" font-size="8.5" fill="#9A948A" text-anchor="end">${rupee(Math.round(e))}</text>`;}
+  for(let p=0;p<=100;p+=10){
+    g+=`<line x1="${X(p/100)}" y1="${T}" x2="${X(p/100)}" y2="${B}" stroke="#F4F1EA"/>`;
+    g+=`<text x="${X(p/100)}" y="${B+15}" font-size="8.5" fill="#9A948A" text-anchor="middle">${p}%</text>`;}
+  g+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${B}" stroke="#D8D2C7"/><line x1="${L}" y1="${B}" x2="${R}" y2="${B}" stroke="#D8D2C7"/>`;
+  g+=`<text x="${(L+R)/2}" y="${B+34}" font-size="10" fill="#6E6961" text-anchor="middle">every possible guess for the lane's empty-return rate \u2192</text>`;
+  g+=`<text x="20" y="111" font-size="10" fill="#6E6961" text-anchor="middle" transform="rotate(-90 20 111)">how wrong it would be</text>`;
+  // filled curve
+  let d='M'+X(0)+' '+Y(pts[0].e);
+  pts.forEach(q=>{d+='L'+X(q.g).toFixed(1)+' '+Y(q.e).toFixed(1);});
+  g+=`<path d="${d} L${R} ${B} L${L} ${B} Z" fill="#147E86" fill-opacity="0.07"/>`;
+  g+=`<path d="${d}" fill="none" stroke="#147E86" stroke-width="2.4"/>`;
+  // hoverable dots every 5%
+  pts.forEach(q=>{ if(Math.round(q.g*100)%5) return;
+    g+=`<circle cx="${X(q.g).toFixed(1)}" cy="${Y(q.e).toFixed(1)}" r="7" fill="transparent"><title>guess ${(q.g*100).toFixed(0)}%  \u2192  average miss ${rupee(Math.round(q.e))}</title></circle>`;
+    g+=`<circle cx="${X(q.g).toFixed(1)}" cy="${Y(q.e).toFixed(1)}" r="2.6" fill="#147E86" pointer-events="none"/>`;});
+  // the bottom
+  g+=`<line x1="${X(best.g)}" y1="${T}" x2="${X(best.g)}" y2="${B}" stroke="#8A5A05" stroke-dasharray="4 3"/>`;
+  g+=`<circle cx="${X(best.g)}" cy="${Y(best.e)}" r="5.5" fill="#8A5A05"/>`;
+  g+=`<text x="${X(best.g)+10}" y="${Y(best.e)-8}" font-size="11" font-weight="700" fill="#8A5A05">bottom of the valley — ${(best.g*100).toFixed(0)}%</text>`;
+  // where the model currently stands
+  if(hist.length){
+    g+=`<circle cx="${X(w)}" cy="${Y(miss(w))}" r="6" fill="#B23A24" stroke="#fff" stroke-width="1.5"/>`;
+    g+=`<text x="${X(w)}" y="${Y(miss(w))-13}" font-size="10.5" font-weight="700" fill="#B23A24" text-anchor="middle">model is here: ${(w*100).toFixed(1)}%</text>`;
+  } else {
+    g+=`<circle cx="${X(0)}" cy="${Y(miss(0))}" r="6" fill="#B23A24" stroke="#fff" stroke-width="1.5"/>`;
+    g+=`<text x="${X(0)+8}" y="${Y(miss(0))-10}" font-size="10.5" font-weight="700" fill="#B23A24">model starts here: 0%</text>`;
+  }
+  S.innerHTML=g;
+}
+
+function drawLoss(){
+  const S=document.getElementById('lossSvg');if(!S)return;
+  if(hist.length===0){ blankChart('lossSvg','no trips fed yet — press One trip');
+    const n=document.getElementById('lossNote'); if(n) n.innerHTML=''; return; }
+
+  // Every point comes straight from the algorithm's own recorded misses (h.err) -- the same
+  // numbers in the MISS column of the table. Nothing is recalculated on unseen trips.
+  const pts=[];
+  for(let k=0;k*TRIPS.length<hist.length;k++){
+    const slice=hist.slice(k*TRIPS.length,(k+1)*TRIPS.length);
+    pts.push({lbl:'pass '+(k+1), n:slice.length,
+              avg:slice.reduce((t,h)=>t+Math.abs(h.err),0)/slice.length});
+  }
+  const worst=Math.max(...pts.map(q=>q.avg));
+  const TOP=Math.max(2000,Math.ceil(worst/2000)*2000);
+  const N=Math.max(4,pts.length);
+  const L=86,R=452,T=22,B=158;
+  const X=i=>pts.length===1?(L+R)/2:L+(i/(N-1))*(R-L), Y=v=>B-(v/TOP)*(B-T);
+  let g='';
+  for(let t=0;t<=TOP/2000;t++){const v=t*2000,y=Y(v);
+    g+=`<line x1="${L}" y1="${y}" x2="${R}" y2="${y}" stroke="#EDE8DF"/>`;
+    g+=`<text x="${L-8}" y="${y+3}" font-size="8.5" fill="#9A948A" text-anchor="end">${rupee(v)}</text>`;}
+  g+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${B}" stroke="#D8D2C7"/><line x1="${L}" y1="${B}" x2="${R}" y2="${B}" stroke="#D8D2C7"/>`;
+  if(pts.length>1){let d='';pts.forEach((q,i)=>{d+=(i?'L':'M')+X(i).toFixed(1)+' '+Y(q.avg).toFixed(1);});
+    g+=`<path d="${d}" fill="none" stroke="#147E86" stroke-width="2.2"/>`;}
+  pts.forEach((q,i)=>{
+    g+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(q.avg).toFixed(1)}" r="4" fill="#147E86"><title>${q.lbl}: average of the ${q.n} miss${q.n===1?'':'es'} recorded so far in this pass = ${rupee(Math.round(q.avg))}</title></circle>`;
+    g+=`<text x="${X(i).toFixed(1)}" y="${(Y(q.avg)-9).toFixed(1)}" font-size="9" font-weight="700" fill="#0F5057" text-anchor="middle">${rupee(Math.round(q.avg))}</text>`;
+    g+=`<text x="${X(i).toFixed(1)}" y="174" font-size="8.5" fill="#9A948A" text-anchor="middle">${q.lbl}${q.n<TRIPS.length?' ('+q.n+'/'+TRIPS.length+')':''}</text>`;});
+  S.innerHTML=g;
+  const last=pts[pts.length-1];
+  document.getElementById('lossNote').innerHTML =
+    'Average of the misses the model actually recorded — the <b>MISS</b> column in the table below. '+
+    (pts.length===1
+      ? '<b>'+last.n+' trip'+(last.n===1?'':'s')+'</b> fed so far, average miss <b>'+rupee(Math.round(last.avg))+'</b>.'
+      : 'Pass '+pts.length+' averaging <b>'+rupee(Math.round(last.avg))+'</b>, down from <b>'+rupee(Math.round(pts[0].avg))+'</b> in pass 1.')+
+    ' It stops falling once the guess settles — <b>one number cannot predict one truck</b>, only the average.';
+}
+
+function drawScatter(){
+  const S=document.getElementById('scatSvg');if(!S)return;
+  if(hist.length===0){ blankChart('scatSvg','no trips fed yet — press One trip');
+    const n=document.getElementById('scatNote'); if(n) n.innerHTML=''; return; }
+
+  // Plot the prediction the algorithm ACTUALLY made for each trip -- h.pred straight out of the
+  // step record, the same figure in the PREDICTED column of the table. Not recomputed.
+  // If a trip has been seen more than once, its latest prediction wins.
+  const latest=new Map();
+  hist.forEach(h=>latest.set(h.trip.n,h));
+  const rows=[...latest.values()];
+
+  const lo=-22000, hi=4000, STEPV=4000;
+  const L=90,R=456,T=20,B=156;
+  const X=v=>L+((v-lo)/(hi-lo))*(R-L), Y=v=>B-((v-lo)/(hi-lo))*(B-T);
+  let g='';
+  for(let v=lo;v<=hi;v+=STEPV){
+    g+=`<line x1="${L}" y1="${Y(v)}" x2="${R}" y2="${Y(v)}" stroke="#EDE8DF"/>`;
+    g+=`<text x="${L-8}" y="${Y(v)+3}" font-size="8" fill="#9A948A" text-anchor="end">${rupee(v)}</text>`;
+    g+=`<text x="${X(v)}" y="172" font-size="8" fill="#9A948A" text-anchor="middle">${rupee(v)}</text>`;}
+  g+=`<line x1="${X(lo)}" y1="${Y(lo)}" x2="${X(hi)}" y2="${Y(hi)}" stroke="#B8B2A6" stroke-dasharray="4 3"/>`;
+  g+=`<line x1="${L}" y1="${T}" x2="${L}" y2="${B}" stroke="#D8D2C7"/><line x1="${L}" y1="${B}" x2="${R}" y2="${B}" stroke="#D8D2C7"/>`;
+  g+=`<text x="${(L+R)/2}" y="190" font-size="9" fill="#6E6961" text-anchor="middle">what the trip really returned \u2192</text>`;
+  g+=`<text x="16" y="88" font-size="9" fill="#6E6961" text-anchor="middle" transform="rotate(-90 16 88)">what the model predicted</text>`;
+  rows.forEach(h=>{const t=h.trip, pr=h.pred, off=h.err;
+    const col=t.waste>=0.75?'#B23A24':(t.waste<=0.25?'#2F5B3C':'#8A5A05');
+    g+=`<line x1="${X(t.a).toFixed(1)}" y1="${Y(pr).toFixed(1)}" x2="${X(t.a).toFixed(1)}" y2="${Y(t.a).toFixed(1)}" stroke="${col}" stroke-width="1" stroke-opacity="0.4"/>`;
+    g+=`<circle cx="${X(t.a).toFixed(1)}" cy="${Y(pr).toFixed(1)}" r="5" fill="${col}" fill-opacity="0.85" stroke="#fff"><title>Trip #${t.n} — ${t.story}
+guess used   ${(h.w*100).toFixed(2)}%
+predicted    ${rupee(Math.round(pr))}
+really       ${rupee(t.a)}
+missed by    ${rupee(Math.round(off))}</title></circle>`;});
+  S.innerHTML=g;
+  const offs=rows.map(h=>Math.abs(h.err));
+  const worst=rows[offs.indexOf(Math.max(...offs))], best=rows[offs.indexOf(Math.min(...offs))];
+  document.getElementById('scatNote').innerHTML=
+    '<b>'+rows.length+' trip'+(rows.length===1?'':'s')+' plotted</b>, each showing the prediction the model made '+
+    'at the moment it saw that trip — the <b>PREDICTED</b> column in the table. '+
+    'Worst miss: trip #'+worst.trip.n+', <b>'+rupee(Math.round(Math.max(...offs)))+'</b>. '+
+    'Closest: trip #'+best.trip.n+', <b>'+rupee(Math.round(Math.min(...offs)))+'</b>. '+
+    'The dashed diagonal is a perfect prediction. <b>Hover a dot for its exact numbers.</b>';
+}
+
+function drawConv(){
+  const ws=document.getElementById('wSvg'); if(!ws) return;
+  const N=Math.max(11,hist.length+1);
+  const X=i=>36+(i/(N-1))*(452-44), Yw=r=>160-(r/1.0)*(160-14);
+  let g='';
+  for(let t=0;t<=5;t++){const y=Yw(t*0.2);g+=`<line x1="36" y1="${y}" x2="452" y2="${y}" stroke="#EDE8DF"/><text x="30" y="${y+3}" font-size="8.5" fill="#9A948A" text-anchor="end">${t*20}%</text>`;}
+  if(hist.length>=TRIPS.length){g+=`<line x1="36" y1="${Yw(EMERGENT)}" x2="452" y2="${Yw(EMERGENT)}" stroke="#8A5A05" stroke-dasharray="4 3"/><text x="452" y="${Yw(EMERGENT)-4}" font-size="9" fill="#8A5A05" text-anchor="end">trips average ${(EMERGENT*100).toFixed(0)}%</text>`;}
+  if(hist.length){
+    let d='';const seq=[0,...hist.map(h=>h.wNew)];
+    seq.forEach((r,i)=>{d+=(i?'L':'M')+X(i).toFixed(1)+' '+Yw(r).toFixed(1);});
+    g+=`<path d="${d}" fill="none" stroke="#147E86" stroke-width="2.2"/>`;
+    seq.forEach((r,i)=>{const em=i>0&&hist[i-1].trip.waste>=0.5;
+      g+=`<circle cx="${X(i).toFixed(1)}" cy="${Yw(r).toFixed(1)}" r="3.4" fill="${i===0?'#9A948A':(em?'#B23A24':'#2F5B3C')}"/>`;});
+  }
+  ws.innerHTML=g;
+
+  const es=document.getElementById('eSvg'); if(!es) return;
+  const maxE=20000, Ye=e=>160-(e/maxE)*(160-14);
+  let h2='';
+  for(let t=0;t<=4;t++){const y=Ye(t/4*maxE);h2+=`<line x1="36" y1="${y}" x2="452" y2="${y}" stroke="#EDE8DF"/><text x="30" y="${y+3}" font-size="8.5" fill="#9A948A" text-anchor="end">${Math.round(t/4*maxE/1000)}k</text>`;}
+  const bw=(452-44)/Math.max(11,hist.length);
+  hist.forEach((h,i)=>{const bh=Math.max(2,(Math.abs(h.err)/maxE)*(160-14));const x=40+i*bw;
+    h2+=`<rect x="${x}" y="${160-bh}" width="${Math.max(3,bw-6)}" height="${bh}" rx="3" fill="${h.trip.empty?'#B23A24':'#2F5B3C'}" fill-opacity="0.8"/>`;});
+  es.innerHTML=h2;
+}
+
+function renderLog(){
+  const tb=document.querySelector('#log tbody');tb.innerHTML='';
+  hist.forEach((h,i)=>{
+    const t=h.trip, says=(t.p-t.a)/t.d, gap=says-h.w, pass=Math.floor(i/TRIPS.length)+1;
+    const col=t.waste>=0.75?'#B23A24':(t.waste<=0.25?'#2F5B3C':'#8A5A05');
+    const tr=document.createElement('tr'); if(i===hist.length-1)tr.className='cur';
+    tr.innerHTML=`<td>${i+1}</td><td>${pass}</td><td><b>#${t.n}</b></td>
+      <td style="text-align:left;color:${col}">${t.story}</td>
+      <td>${rupee(t.p)}</td><td>${rupee(t.d)}</td>
+      <td style="color:${t.a<0?'#B23A24':'#2F5B3C'}">${rupee(t.a)}</td>
+      <td style="background:#FEFBF4">${pctf(h.w)}</td>
+      <td style="background:#FEFBF4;color:${h.pred<0?'#B23A24':'#2F5B3C'}">${rupee(h.pred)}</td>
+      <td style="background:#F2F9FA;font-weight:700;color:${col}">${says.toFixed(3)}</td>
+      <td style="background:#F2F9FA;color:${gap>0?'#B23A24':'#2F5B3C'}">${gap>=0?'+':''}${gap.toFixed(4)}</td>
+      <td style="background:#F2F9FA;font-weight:700;color:${h.corr>0?'#0F5057':'#8A3A28'}">${h.corr>=0?'+':''}${(h.corr*100).toFixed(2)}</td>
+      <td><b>${pctf(h.wNew)}</b></td>`;
+    tb.appendChild(tr);
+    // after every full pass, a summary bar
+    if((i+1)%TRIPS.length===0){
+      const prevW=(i+1===TRIPS.length)?0:hist[i-TRIPS.length].wNew;
+      const bar=document.createElement('tr');
+      bar.innerHTML=`<td colspan="12" style="background:#12100E;color:#fff;text-align:left;font-weight:700;padding:7px 8px">
+          end of pass ${pass} &nbsp;<span style="font-weight:400;color:#B9B2A6">— all ${TRIPS.length} trips seen once more; the guess moved ${((h.wNew-prevW)*100).toFixed(2)} points this pass</span></td>
+        <td style="background:#12100E;color:#7FB8BE;font-weight:800">${pctf(h.wNew)}</td>`;
+      tb.appendChild(bar);
+    }
+  });
+}
+
+function step(){
+  if(hist.length>=MAX_STEPS) return false;
+  const t=TRIPS[iter % TRIPS.length];          // walk trip 1..10, then round again
+  const pred=t.p - w*t.d;
+  const err=pred - t.a;
+  const corr=(parseFloat((document.getElementById('lrSel')||{}).value)||T.lr)*(err/t.d);
+  const wNew=Math.max(0, Math.min(1, w+corr));
+  const h={iter,trip:t,w,pred,err,corr,wNew};hist.push(h);
+  w=wNew;iter++;
+  document.querySelectorAll('#tripTbl tbody tr').forEach(r=>r.classList.remove('cur'));
+  const row=document.getElementById('trow'+t.n); if(row) row.classList.add('cur');
+  document.getElementById('sIter').textContent=iter;
+  document.getElementById('sW').textContent=pctf(w);
+  document.getElementById('sPred').textContent=rupee(pred);
+  const se=document.getElementById('sErr');se.textContent=(err>=0?'+':'')+fmt(err);se.style.color=err>0?'var(--loss)':'var(--gain)';
+  renderMath(h);narrate(h);netSVG();drawConv();drawLoss();drawScatter();drawHill();renderLog();if(typeof paintPanel==="function")paintPanel();
+  return true;
+}
+function narrate(h){
+  const n=document.getElementById('narr'), t=h.trip;
+  const miss=Math.abs(Math.round(h.err)), wp=(h.w*100).toFixed(0), wn=(h.wNew*100).toFixed(0);
+  const up=h.err>0;
+  let s;
+  if(h.iter===0){
+    s=`<b>Trip #${t.n} — the first piece of evidence.</b> The model starts by assuming trucks always find a load home (0% wasted), so it expects <b>${rupee(t.p)}</b>. What actually happened: <b>${t.story}</b>, so it returned <b>${rupee(t.a)}</b>. It nudges its guess to <b>${wn}%</b> and waits for more trips.`;
+  } else if(up){
+    s=`<b>Trip #${t.n}: ${t.story}.</b> More diesel went unpaid than the model expected — it predicted <b>${rupee(h.pred)}</b> but the trip returned <b>${rupee(t.a)}</b>, missing by <b>\u20b9${fmt(miss)}</b>. So the guess goes <b>UP</b>: ${wp}% \u2192 <b>${wn}%</b>.`;
+  } else {
+    s=`<b>Trip #${t.n}: ${t.story}.</b> Less waste than the model feared — it predicted <b>${rupee(h.pred)}</b> but the trip returned <b>${rupee(t.a)}</b>. So the guess comes <b>DOWN</b>: ${wp}% \u2192 <b>${wn}%</b>. Good trips pull down, bad ones pull up — that tug-of-war is the learning.`;
+  }
+  if(h.iter===TRIPS.length-1){
+    s+=` <br><br><b>That is one full pass over the lane.</b> The guess is around <b>${wn}%</b>. Keep stepping — it will circle in on the figure these ten journeys actually describe.`;
+  } else if(h.iter>=TRIPS.length*2-1){
+    s+=` <br><br><b>Settled.</b> The model says roughly <b>${wn}%</b> of the return diesel on this route goes unpaid — and the ten trips, averaged, say <b>${(EMERGENT*100).toFixed(0)}%</b>. It found the number without anyone ever writing it down.`;
+  }
+  n.innerHTML=s;
+  const seen=document.getElementById('sSeen'); if(seen) seen.textContent=Math.min(h.iter+1,TRIPS.length)+' / '+TRIPS.length;
+}
+function reset(){w=0;iter=0;hist=[];const tm=document.getElementById('trainMsg');if(tm)tm.innerHTML='';document.getElementById('sIter').textContent='0';document.getElementById('sW').textContent='0%';document.getElementById('sPred').textContent='—';document.getElementById('sErr').textContent='—';document.getElementById('sSeen').textContent='0 / '+TRIPS.length;
+  document.getElementById('mathPanel').innerHTML='<div class="step"><span class="n">—</span><span>Press <b>Step</b> to run the first iteration.</span></div>';
+  document.getElementById('narr').innerHTML='The model is about to make its very first guess. It knows nothing about this lane yet, so it assumes empty returns cost nothing — a rate of 0%. Press <b>Step</b> and watch it discover it\'s wrong, then fix itself.';
+  document.querySelector('#log tbody').innerHTML='';document.querySelectorAll('#tripTbl tbody tr').forEach(r=>r.classList.remove('cur'));netSVG();drawConv();drawLoss();drawScatter();drawHill();}
+
+
+
+
+
+
+
+
+netSVG();drawConv();drawLoss();drawScatter();
+
+// ================= control panel =================
+let running=false;
+const $=id=>document.getElementById(id);
+const speed=()=>parseInt($('spd').value,10);
+
+function paintPanel(){
+  const seen=hist.length;
+  const inPass = seen===0 ? 0 : (seen%TRIPS.length===0 ? TRIPS.length : seen%TRIPS.length);
+  const pass   = seen===0 ? 0 : Math.ceil(seen/TRIPS.length);
+  $('cPass').textContent = pass;
+  $('cTrip').textContent = inPass+' / '+TRIPS.length;
+  $('cSeen').textContent = seen;
+  $('cW').textContent    = (w*100).toFixed(2)+'%';
+  $('cMae').textContent  = seen===0 ? '—' : rupee(Math.round(maeAt(w)));
+  $('cTarget').textContent = (EMERGENT*100).toFixed(1)+'%';
+  let cells='';
+  for(let i=0;i<TRIPS.length;i++)
+    cells+='<div class="ctrl-cell'+(i<inPass?' done':'')+(i===inPass-1?' now':'')+'"></div>';
+  $('cTrack').innerHTML=cells;
+}
+const say=html=>{$('trainMsg').innerHTML=html;};
+
+$('stepBtn').addEventListener('click',function(){
+  if(running) return;
+  MAX_STEPS=TRIPS.length*12;
+  const before=w;
+  if(!step()){ say('<b>Nothing left to run.</b> Press Reset to start again.'); return; }
+  paintPanel();
+  const t=hist[hist.length-1].trip;
+  say('Fed trip <b>#'+t.n+'</b> ('+t.story+'). Guess <b>'+(before*100).toFixed(2)+
+      '% \u2192 '+(w*100).toFixed(2)+'%</b>. Press <b>One trip</b> again, or run the whole pass.');
+});
+
+function autoRun(stopAfterOnePass){
+  if(running) return;
+  running=true; $('stopBtn').style.display='';
+  ['stepBtn','passBtn','trainBtn'].forEach(b=>$(b).disabled=true);
+  MAX_STEPS=TRIPS.length*12;
+  const THRESHOLD=0.001;
+  let passStart=w, pass=Math.floor(hist.length/TRIPS.length)+1;
+  const finish=why=>{
+    running=false; $('stopBtn').style.display='none';
+    ['stepBtn','passBtn','trainBtn'].forEach(b=>$(b).disabled=false);
+    say(why);
+  };
+  const tick=()=>{
+    if(!running) return finish('<b>Stopped.</b> Guess is <b>'+(w*100).toFixed(2)+'%</b> after '+
+      hist.length+' trips. Continue with <b>One trip</b> whenever you like.');
+    if(!step()) return finish('<b>Reached the step limit.</b> Press Reset to start again.');
+    paintPanel();
+    const t=hist[hist.length-1].trip, inPass=hist.length%TRIPS.length;
+    say('pass <b>'+pass+'</b> \u00b7 trip <b>'+(inPass===0?TRIPS.length:inPass)+' of '+TRIPS.length+
+        '</b> \u00b7 just fed #'+t.n+' ('+t.story+') \u00b7 guess now <b>'+(w*100).toFixed(2)+'%</b>');
+    if(inPass===0){
+      const moved=Math.abs(w-passStart);
+      if(stopAfterOnePass) return finish('<b>Pass '+pass+' complete.</b> All '+TRIPS.length+
+        ' trips seen. Guess moved to <b>'+(w*100).toFixed(2)+'%</b> ('+((w-passStart)*100).toFixed(2)+
+        ' points). Average miss <b>'+rupee(Math.round(maeAt(w)))+'</b> per trip.');
+      if(moved<THRESHOLD||pass>=12) return finish('<b>Settled after '+pass+' passes.</b> The last pass moved it only '+
+        (moved*100).toFixed(2)+' points. Final answer: <b>'+(w*100).toFixed(2)+
+        '%</b> of the return diesel goes unpaid on this lane. Average miss <b>'+rupee(Math.round(maeAt(w)))+'</b>.');
+      pass++; passStart=w;
+    }
+    setTimeout(tick,speed());
+  };
+  setTimeout(tick,150);
+}
+$('passBtn').addEventListener('click',function(){autoRun(true);});
+$('trainBtn').addEventListener('click',function(){autoRun(false);});
+$('stopBtn').addEventListener('click',function(){running=false;});
+$('resetBtn').addEventListener('click',function(){running=false;reset();paintPanel();
+  say('Cleared. Press <b>One trip</b> to feed a single journey, or <b>Run this pass</b> to walk all 10.');});
+
+// ---- lane picker for the trainer ----
+(function(){
+  const sel=$('trainLane'); if(!sel) return;
+  Object.keys(LANE_TRIPS).sort().forEach(k=>{
+    const o=document.createElement('option'); o.value=k;
+    o.textContent=k+'  \u00b7  stored rate '+Math.round(LANE_TRIPS[k].rate*100)+'%';
+    if(k===LANE) o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change',function(){
+    running=false;
+    LANE=this.value;
+    TRIPS=LANE_TRIPS[LANE].trips;
+    EMERGENT=TRIPS.reduce((x,t)=>x+t.waste,0)/TRIPS.length;
+    MAX_STEPS=TRIPS.length*4;
+    renderTripTable();
+    reset(); paintPanel(); drawHill();
+    say('Now training <b>'+LANE+'</b> — ten different trips, a different answer to find. Press <b>One trip</b> to begin.');
+  });
+})();
+
+(function(){const l=$('lrSel'); if(!l) return;
+  l.addEventListener('change',function(){
+    running=false; MAX_STEPS=TRIPS.length*4; reset(); paintPanel();
+    say('Step size now <b>'+this.value+'</b>. A bigger step gets there faster but overshoots; a smaller one is slower and lands closer to what the trips actually average. Press <b>Run until settled</b> to compare.');
+  });})();
+
+drawHill();
+paintPanel();
+
+
+
+// nav highlight on scroll
+(function(){
+  const links=[...document.querySelectorAll('nav.side a')];
+  const secs=links.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+  const mark=()=>{let cur=links[0];
+    secs.forEach((sec,i)=>{ if(sec.getBoundingClientRect().top<160) cur=links[i]; });
+    links.forEach(a=>a.classList.remove('on')); if(cur) cur.classList.add('on');};
+  window.addEventListener('scroll',mark,{passive:true}); mark();
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,26 @@
 package io.mlgradientj;
 
+/**
+ * 
+ * Linear regression from scratch: gradient descent in plain Java
+
+	Learns one number from finished trips -- the share of a lane's return
+	diesel that earns nothing because the lorry came home empty. 
+	
+	No ML library; the arithmetic is the code.
+	
+	  model    predict = planned - (weight x diesel)
+	  method   predict, measure the miss, nudge the weight, repeat
+	  stop     when a full pass moves the weight < 0.1 of a point
+	
+	Derived on paper first, then written by hand. Converges on the four	sample trips in ~37 passes.
+	
+	Notes for the reader:
+	- STEP_SIZE is why the weight settles on the trips' average rather than swinging to whatever the last trip said.
+	- The miss is in rupees but the weight is a fraction; dividing by diesel is what converts between them.
+	- Math.abs on the pass movement matters -- a large downward correction would otherwise read as "settled".
+ * 
+ */
 public class LinearRegression {
 
 	static final double STEP_SIZE = 0.05;
@@ -46,7 +67,11 @@ public class LinearRegression {
 				
 			}
 			
+			System.out.println("weight: " + weight);
+			System.out.println("weightAtPassStart: " + weightAtPassStart);
 			double moved = Math.abs(weight - weightAtPassStart);
+			
+			System.out.println("moved: " + moved);
 
 		    System.out.printf("Pass %d: weight=%.2f%%, moved=%.2f%n",
 		                      pass, weight * 100, moved * 100);
