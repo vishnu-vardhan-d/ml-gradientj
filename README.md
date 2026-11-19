@@ -2,6 +2,8 @@
 
 **Machine learning algorithms written from scratch in Java. No libraries, no magic — just the arithmetic.**
 
+One algorithm at a time. Linear regression is complete; the [roadmap](#roadmap) lists what comes next.
+
 Derived on paper first, then coded from that derivation. Every prediction, every mistake and
 every correction is visible, so you can follow along and check the numbers yourself.
 
@@ -98,7 +100,7 @@ mvn compile exec:java -Dexec.mainClass=io.mlgradientj.LinearRegression
 mvn package && java -cp target/classes io.mlgradientj.LinearRegression
 ```
 
-Requires Java 17+ and Maven. The explainer page needs neither — just open
+Requires Java 21+ and Maven. The explainer page needs neither — just open
 `docs/index.html` in a browser.
 
 ---
@@ -122,4 +124,4 @@ it, and this repository would rather say so than imply otherwise.
 
 ## Licence
 
-MIT
+MIT. See [LICENSE](LICENSE).
